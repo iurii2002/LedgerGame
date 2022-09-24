@@ -11,7 +11,19 @@ contract WorldOfLedger is WorldOfLedgerFactory {
     mapping(address => uint256) public usersRewards;
     mapping(uint256 => address) public users;
 
-    constructor() {
+    constructor(
+        uint64 _subscriptionId,
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        address _bossContract
+    )
+        WorldOfLedgerFactory(
+            _subscriptionId,
+            _vrfCoordinator,
+            _keyHash,
+            _bossContract
+        )
+    {
         _totalUsers = 0;
     }
 
@@ -24,44 +36,50 @@ contract WorldOfLedger is WorldOfLedgerFactory {
             _hasAliveCharacter(msg.sender) == true,
             "Your Character should be alive"
         );
-        require(boss_alive == true, "There is no active Boss right now");
+        require(bossAlive == true, "There is no active Boss right now");
 
-        _userAttackProcess();
+        _userAttackProcess(usersCharacters[msg.sender].damage);
         _bossAttackProcess();
         _checkHealthAfterFight();
     }
 
     function _checkHealthAfterFight() internal {
         if (usersCharacters[msg.sender].hp == 0) {
-            usersCharacters[msg.sender].is_alive == false;
+            _user_died();
         }
-        if (current_boss.hp == 0) {
+        if (currentBoss.hp == 0) {
             finalizeRound();
         }
     }
 
-    function _userAttackProcess() internal {
+    function _user_died() internal {
+        usersCharacters[msg.sender].isAlive == false;
+        usersCharacters[msg.sender].xp = 0;
+        _updateUserLevel(msg.sender);
+    }
+
+    function _userAttackProcess(uint256 userDamage) internal {
         if (damageMade[msg.sender] == 0) {
             _totalUsers++;
             users[_totalUsers] = msg.sender;
         }
 
-        if (usersCharacters[msg.sender].damage > current_boss.hp) {
-            _totalDamage += current_boss.hp;
-            damageMade[msg.sender] += current_boss.hp;
-            current_boss.hp = 0;
+        if (userDamage > currentBoss.hp) {
+            _totalDamage += currentBoss.hp;
+            damageMade[msg.sender] += currentBoss.hp;
+            currentBoss.hp = 0;
         } else {
-            _totalDamage += usersCharacters[msg.sender].damage;
-            current_boss.hp -= usersCharacters[msg.sender].damage;
-            damageMade[msg.sender] += usersCharacters[msg.sender].damage;
+            _totalDamage += userDamage;
+            currentBoss.hp -= userDamage;
+            damageMade[msg.sender] += userDamage;
         }
     }
 
     function _bossAttackProcess() internal {
-        if (current_boss.damage > usersCharacters[msg.sender].hp) {
+        if (currentBoss.damage > usersCharacters[msg.sender].hp) {
             usersCharacters[msg.sender].hp = 0;
         } else {
-            usersCharacters[msg.sender].hp -= current_boss.damage;
+            usersCharacters[msg.sender].hp -= currentBoss.damage;
         }
     }
 
@@ -82,17 +100,35 @@ contract WorldOfLedger is WorldOfLedgerFactory {
             _userHasCharacter(healed_user) == true,
             "User should have Character to heal it"
         );
+        require(
+            usersCharacters[msg.sender].level >= 2,
+            "Only players level 2 or above may cast the heal spell"
+        );
         require(healed_user != msg.sender, "You can not heal YOUR character");
 
         // assuming that Character may heal in the same amount as make damage
         usersCharacters[healed_user].hp += usersCharacters[msg.sender].damage;
     }
 
+    function castFireBolt() public {
+        require(
+            usersCharacters[msg.sender].level >= 3,
+            "Only players level 3 or above may cast the heal spell"
+        );
+        require(
+            block.timestamp <=
+                usersCharacters[msg.sender].fireBoltTime + 1 days,
+            "You may cast spell only once a day"
+        );
+        usersCharacters[msg.sender].fireBoltTime = block.timestamp;
+        _userAttackProcess(usersCharacters[msg.sender].damage * 2);
+    }
+
     function finalizeRound() internal {
-        boss_alive == false;
+        bossAlive == false;
         for (uint256 i = 1; i <= _totalUsers; i++) {
             usersRewards[users[i]] +=
-                current_boss.reward *
+                currentBoss.reward *
                 (damageMade[users[i]] / _totalDamage);
             delete damageMade[users[i]];
             delete users[i];
@@ -103,6 +139,7 @@ contract WorldOfLedger is WorldOfLedgerFactory {
 
     function claimRewards() public {
         _addExperience(msg.sender, usersRewards[msg.sender]);
+        _updateUserLevel(msg.sender);
         _clearRewards(msg.sender);
     }
 
@@ -112,5 +149,26 @@ contract WorldOfLedger is WorldOfLedgerFactory {
 
     function _clearRewards(address user) internal {
         usersRewards[user] = 0;
+    }
+
+    function _updateUserLevel(address user) internal {
+        uint256 newUserLevel = uint256(
+            ((_sqrt(usersCharacters[user].xp)) * 20) / 100
+        );
+        usersCharacters[user].level = newUserLevel;
+        _checkHealthAfterFight();
+    }
+
+    function _sqrt(uint256 y) internal pure returns (uint256 z) {
+        if (y > 3) {
+            z = y;
+            uint256 x = y / 2 + 1;
+            while (x < z) {
+                z = x;
+                x = (y / x + x) / 2;
+            }
+        } else if (y != 0) {
+            z = 1;
+        }
     }
 }

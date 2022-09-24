@@ -15,16 +15,20 @@ networks:
     verify: False
   goerli:
     verify: True
-    link_token: 0x326C977E6efc84E512bB9C30f76E30c160eD06FB
-    VRF_coordinator: 0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D
-    keyHash: 0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15
+    subscriptionId: 1049
+    VRF_coordinator: '0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D'
+    keyHash: '0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15'
     link_premium: 0.25
     callbackGasLimit: 100000
     requestConfirmations: 3
     numWords: 2
+  mainnet:
+    boss_contract: '0x23581767a106ae21c074b2276D25e5C3e136a68b'
   mainnet-fork:
     verify: False
+    boss_contract: '0x23581767a106ae21c074b2276D25e5C3e136a68b'
   mainnet-fork-dev:
+    boss_contract: '0x23581767a106ae21c074b2276D25e5C3e136a68b'
     verify: False
   ganache-local:
     verify: False

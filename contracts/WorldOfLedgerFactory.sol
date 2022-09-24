@@ -3,42 +3,63 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 
-// import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
-// import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+interface BossInterface {
+    function tokenURI(uint256 berdieId) external view returns (string memory);
 
-contract WorldOfLedgerFactory is Ownable {
-    // VRFCoordinatorV2Interface COORDINATOR;
-    // uint64 s_subscriptionId;
-    // uint32 callbackGasLimit = 100000;
-    // uint16 requestConfirmations = 3;
-    // uint32 numWords = 2;
-    // uint256[] public s_randomWords;
-    // uint256 public s_requestId;
-    // address s_owner;
-    // bytes32 keyhash;
+    function totalSupply() external view returns (uint256);
+}
 
-    Boss public current_boss;
-    bool public boss_alive;
+contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
+    VRFCoordinatorV2Interface COORDINATOR;
+    uint64 subscriptionId;
+    uint32 callbackGasLimit = 500000;
+    uint16 requestConfirmations = 3;
+    uint32 numWords = 2;
+    mapping(uint256 => address) public requestIdToAddress;
+    mapping(uint256 => uint256[]) public requestIdToRandomWords;
+    bytes32 keyHash;
+
+    Boss public currentBoss;
+    bool public bossAlive;
+    address public bossContractAddress;
 
     mapping(address => Character) public usersCharacters;
+    event RequestedRandomness(uint256 requestId);
+    event BossCreated(string berdieTokenURI);
 
     struct Character {
         uint256 hp;
         uint256 damage;
         uint256 xp;
         uint256 level;
-        bool is_alive;
+        bool isAlive;
+        uint256 fireBoltTime;
     }
 
     struct Boss {
         uint256 hp;
         uint256 damage;
         uint256 reward;
+        uint256 id;
     }
 
-    constructor() {
-        boss_alive = false;
+    constructor(
+        uint64 _subscriptionId,
+        address _vrfCoordinator,
+        bytes32 _keyHash,
+        address _bossContract
+    ) VRFConsumerBaseV2(_vrfCoordinator) {
+        COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
+        subscriptionId = _subscriptionId;
+        keyHash = _keyHash;
+        bossContractAddress = _bossContract;
+        bossAlive = false;
+        // add subscription
+        // subscriptionId = COORDINATOR.createSubscription();
+        // COORDINATOR.addConsumer(subscriptionId, address(this));
     }
 
     function createRandomCharacter() public {
@@ -46,7 +67,7 @@ contract WorldOfLedgerFactory is Ownable {
             _userHasCharacter(msg.sender) == false,
             "You can not create more then one character"
         );
-        usersCharacters[msg.sender] = _createRandomCharacter();
+        _createRandomCharacter();
     }
 
     function _userHasCharacter(address user) internal view returns (bool) {
@@ -54,21 +75,13 @@ contract WorldOfLedgerFactory is Ownable {
     }
 
     function _hasAliveCharacter(address user) internal view returns (bool) {
-        return usersCharacters[user].is_alive;
+        return usersCharacters[user].isAlive;
     }
 
-    // TODO Add randomeness
-
-    function _createRandomCharacter() private view returns (Character memory) {
+    function _createRandomCharacter() private {
         // % 100 sets the upper limit of the hp and damage
-        uint256 hp = uint256(
-            keccak256(abi.encodePacked(block.difficulty, block.timestamp))
-        ) % 100;
-        uint256 damage = uint256(
-            keccak256(abi.encodePacked(block.difficulty, block.timestamp, hp))
-        ) % 100;
-        Character memory new_character = Character(hp, damage, 0, 1, true);
-        return new_character;
+        uint256 requestId = requestRandomWords();
+        emit RequestedRandomness(requestId);
     }
 
     function populate_boss(
@@ -77,10 +90,54 @@ contract WorldOfLedgerFactory is Ownable {
         uint256 reward
     ) public onlyOwner {
         require(
-            boss_alive == false,
+            bossAlive == false,
             "You can not pupulate new boss while there is another alive"
         );
-        current_boss = Boss(hp, damage, reward);
-        boss_alive = true;
+        BossInterface bossContract = BossInterface(bossContractAddress);
+        uint256 totalSupply = bossContract.totalSupply();
+        uint256 id = (uint256(
+            (
+                keccak256(
+                    abi.encodePacked(
+                        block.difficulty,
+                        block.timestamp,
+                        msg.sender
+                    )
+                )
+            )
+        ) % totalSupply) + 1;
+        currentBoss = Boss(hp, damage, reward, id);
+        bossAlive = true;
+        string memory bossURI = bossContract.tokenURI(id);
+        emit BossCreated(bossURI);
+    }
+
+    function requestRandomWords() public returns (uint256 requestId) {
+        // Will revert if subscription is not set and funded.
+        requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            subscriptionId,
+            requestConfirmations,
+            callbackGasLimit,
+            numWords
+        );
+        requestIdToAddress[requestId] = msg.sender;
+        return requestId;
+    }
+
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
+        internal
+        override
+    {
+        requestIdToRandomWords[requestId] = randomWords;
+
+        usersCharacters[requestIdToAddress[requestId]] = Character(
+            (requestIdToRandomWords[requestId][0] % 100) + 1,
+            (requestIdToRandomWords[requestId][1] % 100) + 1,
+            0,
+            0,
+            true,
+            0
+        );
     }
 }

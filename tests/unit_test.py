@@ -87,8 +87,8 @@ def test_not_owner_may_not_populate_customizable_boss(world_of_ledger_contract):
 def test_user_may_generate_character(world_of_ledger_contract):
     not_owner_account = get_account(index=2)
     world_of_ledger_contract.createRandomCharacter({"from": not_owner_account})
-    # 5 as Character has 5 characteristics
-    assert len(world_of_ledger_contract.usersCharacters(not_owner_account.address)) == 5
+    # 5 as Character has 6 characteristics
+    assert len(world_of_ledger_contract.usersCharacters(not_owner_account.address)) == 6
 
 
 def test_user_may_generate_only_one_character(world_of_ledger_contract):
@@ -104,21 +104,24 @@ def test_user_may_attack_boss(world_of_ledger_contract, populate_boss):
     not_owner_account = get_account(index=2)
     world_of_ledger_contract.createRandomCharacter({"from": not_owner_account})
     (
-        old_current_boss_hp,
-        current_boss_damage,
-        _,
-    ) = world_of_ledger_contract.current_boss()
-    (
         old_users_character_hp,
         users_character_damage,
         _,
         _,
         _,
+        _,
     ) = world_of_ledger_contract.usersCharacters(not_owner_account.address)
+
+    (
+        old_current_boss_hp,
+        current_boss_damage,
+        _,
+    ) = world_of_ledger_contract.current_boss()
+
     world_of_ledger_contract.attackBoss({"from": not_owner_account})
 
     (new_current_boss_hp, _, _) = world_of_ledger_contract.current_boss()
-    (new_users_character_hp, _, _, _, _) = world_of_ledger_contract.usersCharacters(
+    (new_users_character_hp, _, _, _, _, _) = world_of_ledger_contract.usersCharacters(
         not_owner_account.address
     )
     calculated_boss_hp = (
@@ -157,7 +160,7 @@ def test_user_can_claim_rewards(world_of_ledger_contract):
     world_of_ledger_contract.createRandomCharacter({"from": not_owner_account})
     world_of_ledger_contract.attackBoss({"from": not_owner_account})
     world_of_ledger_contract.claimRewards({"from": not_owner_account})
-    (_, _, xp, _, _) = world_of_ledger_contract.usersCharacters(
+    (_, _, xp, _, _, _) = world_of_ledger_contract.usersCharacters(
         not_owner_account.address
     )
     assert xp == reward
@@ -171,20 +174,20 @@ def test_user_with_experience_can_heal_other_character(world_of_ledger_contract)
     world_of_ledger_contract.createRandomCharacter({"from": not_owner_account})
     world_of_ledger_contract.attackBoss({"from": not_owner_account})
     world_of_ledger_contract.claimRewards({"from": not_owner_account})
-    (_, heal_amount, xp, _, _) = world_of_ledger_contract.usersCharacters(
+    (_, heal_amount, xp, _, _, _) = world_of_ledger_contract.usersCharacters(
         not_owner_account.address
     )
 
     not_owner_account_2 = get_account(index=2)
 
     world_of_ledger_contract.createRandomCharacter({"from": not_owner_account_2})
-    (old_hp, _, _, _, _) = world_of_ledger_contract.usersCharacters(
+    (old_hp, _, _, _, _, _) = world_of_ledger_contract.usersCharacters(
         not_owner_account_2.address
     )
     world_of_ledger_contract.healCharacter(
         not_owner_account_2, {"from": not_owner_account}
     )
-    (new_hp, _, _, _, _) = world_of_ledger_contract.usersCharacters(
+    (new_hp, _, _, _, _, _) = world_of_ledger_contract.usersCharacters(
         not_owner_account_2.address
     )
     calculated_new_hp = old_hp + heal_amount
