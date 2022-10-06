@@ -1,34 +1,51 @@
 dependencies:
   - smartcontractkit/chainlink-brownie-contracts@0.4.2
   - OpenZeppelin/openzeppelin-contracts@4.7.3
+  - divergencetech/ethier@0.31.0
+  - chiru-labs/ERC721A@4.2.3
   
 compiler:
   solc:
     remappings:
       - '@chainlink=smartcontractkit/chainlink-brownie-contracts@0.4.2'
       - '@openzeppelin=OpenZeppelin/openzeppelin-contracts@4.7.3'
+      - '@divergencetech=divergencetech/ethier@0.31.0'
+      - 'erc721a=chiru-labs/ERC721A@4.2.3'
 dotenv: .env
 
 networks:
   default: development
   development:
+    keyHash: '0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15'
     verify: False
-  goerli:
-    verify: True
+  goerli:    
     subscriptionId: 1049
-    VRF_coordinator: '0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D'
+    boss_contract: '0x08739fF02Cd10aEbd7a21486A2C0c1E4BADC40d4'
+    vrf_v2_coordinator: '0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D'
+    link_token: '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
     keyHash: '0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15'
     link_premium: 0.25
     callbackGasLimit: 100000
     requestConfirmations: 3
     numWords: 2
+    verify: True
   mainnet:
-    boss_contract: '0x23581767a106ae21c074b2276D25e5C3e136a68b'
-  mainnet-fork:
+    link_token: '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+    boss_contract: '0x40d420f3937428f5625196cEa1e170A8B2a8ff9F'
+    vrf_v2_coordinator: '0x271682DEB8C4E0901D1a1550aD2e64D568E69909'
+    keyHash: '0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef'
+    verify: True
+  mainnet-fork:    
+    link_token: '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+    boss_contract: '0x40d420f3937428f5625196cEa1e170A8B2a8ff9F'
+    vrf_v2_coordinator: '0x271682DEB8C4E0901D1a1550aD2e64D568E69909'
+    keyHash: '0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef'
     verify: False
-    boss_contract: '0x23581767a106ae21c074b2276D25e5C3e136a68b'
   mainnet-fork-dev:
-    boss_contract: '0x23581767a106ae21c074b2276D25e5C3e136a68b'
+    link_token: '0x514910771AF9Ca656af840dff83E8264EcF986CA'
+    boss_contract: '0x40d420f3937428f5625196cEa1e170A8B2a8ff9F'
+    vrf_v2_coordinator: '0x271682DEB8C4E0901D1a1550aD2e64D568E69909'
+    keyHash: '0x8af398995b04c28e9951adb9721ef74c74f93e6a478f39e7e0777be13527e7ef'
     verify: False
   ganache-local:
     verify: False

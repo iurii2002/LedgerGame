@@ -1,4 +1,13 @@
-from brownie import network, accounts, config
+from brownie import (
+    network,
+    accounts,
+    config,
+    LinkToken,
+    VRFCoordinatorV2Mock,
+    BossContract,
+    Contract,
+    chain,
+)
 
 
 FORKED_LOCAL_ENVIRONMENTS = ["mainnet-fork", "mainnet-fork-dev"]
@@ -35,9 +44,9 @@ def get_account(index=None, id=None):
 
 
 contract_to_mock = {
-    "eth_usd_price_feed": MockV3Aggregator,
-    "vrf_v2_coordinator": VRFCoordinatorMock,
+    "vrf_v2_coordinator": VRFCoordinatorV2Mock,
     "link_token": LinkToken,
+    "boss_contract": BossContract,
 }
 
 
@@ -56,10 +65,10 @@ def get_contract(contract_name):
     contract_type = contract_to_mock[contract_name]
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         if len(contract_type) <= 0:
-            # MockV3Aggregator.length
+            # CONTRACT.length = 0 if not deployed already
             deploy_mocks()
         contract = contract_type[-1]
-        # MockV3Aggregator[-1]
+        # Else choose last one
     else:
         contract_address = config["networks"][network.show_active()][contract_name]
         # address
@@ -75,22 +84,31 @@ DECIMALS = 8
 INITIAL_VALUE = 200000000000
 
 
-def deploy_mocks(decimals=DECIMALS, initial_value=INITIAL_VALUE):
+def deploy_mocks():
     account = get_account()
-    MockV3Aggregator.deploy(decimals, initial_value, {"from": account})
-    link_token = LinkToken.deploy({"from": account})
-    VRFCoordinatorMock.deploy(link_token.address, {"from": account})
+    LinkToken.deploy({"from": account})
+    coordinator = VRFCoordinatorV2Mock.deploy(10, 10, {"from": account})
+
+    boss_contract = BossContract.deploy(
+        "Test Boss",
+        "BOSS",
+        10000,
+        10,
+        {"from": account},
+    )
     print("Deployed!")
 
+    return coordinator, boss_contract
 
-def fund_with_link(
-    contract_address, account=None, link_token=None, amount=100000000000000000
-):  # 0.1 LINK
-    account = account if account else get_account()
-    link_token = link_token if link_token else get_contract("link_token")
-    tx = link_token.transfer(contract_address, amount, {"from": account})
-    # link_token_contract = interface.LinkTokenInterface(link_token.address)
-    # tx = link_token_contract.transfer(contract_address, amount, {"from": account})
-    tx.wait(1)
-    print("Fund contract!")
-    return tx
+
+def get_key_from_event(event, _key):
+    for key, value in event.items():
+        if key == _key:
+            return value
+
+
+def create_character_for_testing(coordinator, world_of_ledger_contract, account):
+    create_char_tx = world_of_ledger_contract.createRandomCharacter({"from": account})
+    chain.mine(5)
+    _requestId = get_key_from_event(create_char_tx.events[0], "requestId")
+    coordinator.fulfillRandomWords(_requestId, world_of_ledger_contract)

@@ -11,17 +11,19 @@ contract WorldOfLedger is WorldOfLedgerFactory {
     mapping(address => uint256) public usersRewards;
     mapping(uint256 => address) public users;
 
+    event DamageMade(address user, uint256 amount);
+
     constructor(
-        uint64 _subscriptionId,
         address _vrfCoordinator,
         bytes32 _keyHash,
-        address _bossContract
+        address _bossContract,
+        address _linkToken
     )
         WorldOfLedgerFactory(
-            _subscriptionId,
             _vrfCoordinator,
             _keyHash,
-            _bossContract
+            _bossContract,
+            _linkToken
         )
     {
         _totalUsers = 0;
@@ -65,13 +67,16 @@ contract WorldOfLedger is WorldOfLedgerFactory {
         }
 
         if (userDamage > currentBoss.hp) {
-            _totalDamage += currentBoss.hp;
-            damageMade[msg.sender] += currentBoss.hp;
+            uint256 _actualDamage = currentBoss.hp;
+            _totalDamage += _actualDamage;
+            damageMade[msg.sender] += _actualDamage;
+            emit DamageMade(msg.sender, _actualDamage);
             currentBoss.hp = 0;
         } else {
             _totalDamage += userDamage;
             currentBoss.hp -= userDamage;
             damageMade[msg.sender] += userDamage;
+            emit DamageMade(msg.sender, userDamage);
         }
     }
 
@@ -101,7 +106,7 @@ contract WorldOfLedger is WorldOfLedgerFactory {
             "User should have Character to heal it"
         );
         require(
-            usersCharacters[msg.sender].level >= 2,
+            usersCharacters[msg.sender].level >= healSpellLevel,
             "Only players level 2 or above may cast the heal spell"
         );
         require(healed_user != msg.sender, "You can not heal YOUR character");
@@ -112,15 +117,16 @@ contract WorldOfLedger is WorldOfLedgerFactory {
 
     function castFireBolt() public {
         require(
-            usersCharacters[msg.sender].level >= 3,
+            usersCharacters[msg.sender].level >= fireBoltSpellLevel,
             "Only players level 3 or above may cast the heal spell"
         );
         require(
-            block.timestamp <=
-                usersCharacters[msg.sender].fireBoltTime + 1 days,
+            block.timestamp >= usersCharacters[msg.sender].fireBoltTime,
             "You may cast spell only once a day"
         );
-        usersCharacters[msg.sender].fireBoltTime = block.timestamp;
+        usersCharacters[msg.sender].fireBoltTime =
+            block.timestamp +
+            fireBoltCooldownPeriod;
         _userAttackProcess(usersCharacters[msg.sender].damage * 2);
     }
 

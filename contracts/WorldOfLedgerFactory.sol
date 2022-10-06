@@ -5,30 +5,33 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
-
-interface BossInterface {
-    function tokenURI(uint256 berdieId) external view returns (string memory);
-
-    function totalSupply() external view returns (uint256);
-}
+import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+import "../interfaces/IBossInterface.sol";
 
 contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface COORDINATOR;
+    LinkTokenInterface LINKTOKEN;
     uint64 subscriptionId;
     uint32 callbackGasLimit = 500000;
     uint16 requestConfirmations = 3;
     uint32 numWords = 2;
+    uint8 healSpellLevel = 2;
+    uint8 fireBoltSpellLevel = 3;
+    uint32 fireBoltCooldownPeriod = 1 days;
+
     mapping(uint256 => address) public requestIdToAddress;
     mapping(uint256 => uint256[]) public requestIdToRandomWords;
-    bytes32 keyHash;
+    mapping(address => Character) public usersCharacters;
 
+    bytes32 keyHash;
     Boss public currentBoss;
     bool public bossAlive;
     address public bossContractAddress;
 
-    mapping(address => Character) public usersCharacters;
+    event SubscriptionCreated(uint64 indexed subId);
+    event ConsumerAdded(uint64 indexed subId, address consumer);
     event RequestedRandomness(uint256 requestId);
-    event BossCreated(string berdieTokenURI);
+    event BossCreated(uint256 bossID, string tokenURI);
 
     struct Character {
         uint256 hp;
@@ -47,19 +50,23 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
     }
 
     constructor(
-        uint64 _subscriptionId,
         address _vrfCoordinator,
         bytes32 _keyHash,
-        address _bossContract
+        address _bossContract,
+        address _linkToken
     ) VRFConsumerBaseV2(_vrfCoordinator) {
         COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
-        subscriptionId = _subscriptionId;
+        subscriptionId = COORDINATOR.createSubscription();
+        emit SubscriptionCreated(subscriptionId);
+
+        COORDINATOR.addConsumer(subscriptionId, address(this));
+        emit ConsumerAdded(subscriptionId, address(this));
+        LINKTOKEN = LinkTokenInterface(_linkToken);
+
         keyHash = _keyHash;
+
         bossContractAddress = _bossContract;
         bossAlive = false;
-        // add subscription
-        // subscriptionId = COORDINATOR.createSubscription();
-        // COORDINATOR.addConsumer(subscriptionId, address(this));
     }
 
     function createRandomCharacter() public {
@@ -93,7 +100,7 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
             bossAlive == false,
             "You can not pupulate new boss while there is another alive"
         );
-        BossInterface bossContract = BossInterface(bossContractAddress);
+        IBossInterface bossContract = IBossInterface(bossContractAddress);
         uint256 totalSupply = bossContract.totalSupply();
         uint256 id = (uint256(
             (
@@ -109,7 +116,8 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
         currentBoss = Boss(hp, damage, reward, id);
         bossAlive = true;
         string memory bossURI = bossContract.tokenURI(id);
-        emit BossCreated(bossURI);
+        // string memory bossURI = "testing boss";
+        emit BossCreated(id, bossURI);
     }
 
     function requestRandomWords() public returns (uint256 requestId) {
@@ -139,5 +147,18 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
             true,
             0
         );
+    }
+
+    function fundSubscription(uint96 amount) public {
+        LINKTOKEN.transferFrom(msg.sender, address(this), amount);
+        LINKTOKEN.transferAndCall(
+            address(COORDINATOR),
+            amount,
+            abi.encode(subscriptionId)
+        );
+    }
+
+    function cancelSubscription() external onlyOwner {
+        COORDINATOR.cancelSubscription(subscriptionId, msg.sender);
     }
 }
