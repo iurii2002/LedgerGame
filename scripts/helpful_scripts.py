@@ -86,14 +86,15 @@ INITIAL_VALUE = 200000000000
 
 def deploy_mocks():
     account = get_account()
-    LinkToken.deploy({"from": account})
+    link_token = LinkToken.deploy({"from": account})
     coordinator = VRFCoordinatorV2Mock.deploy(10, 10, {"from": account})
 
     boss_contract = BossContract.deploy(
         "Test Boss",
         "BOSS",
-        10000,
-        10,
+        coordinator.address,
+        link_token.address,
+        config["networks"][network.show_active()]["keyHash"],
         {"from": account},
     )
     print("Deployed!")
@@ -112,3 +113,11 @@ def create_character_for_testing(coordinator, world_of_ledger_contract, account)
     chain.mine(5)
     _requestId = get_key_from_event(create_char_tx.events[0], "requestId")
     coordinator.fulfillRandomWords(_requestId, world_of_ledger_contract)
+
+
+def create_boss_nft(coordinator, boss_contract, account, amount=1):
+    for _ in range(amount):
+        tx = boss_contract.createCollectible({"from": account})
+        chain.mine(5)
+        id = get_key_from_event(tx.events[0], "requestId")
+        coordinator.fulfillRandomWords(id, boss_contract)

@@ -1,72 +1,104 @@
+// An NFT Contract
+// Where the tokenURI can be one of 3 different dogs
+// Randomly selected
+
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
+import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract AdvancedCollectible is ERC721, VRFConsumerBase {
-    uint256 public tokenCounter;
+contract BossContract is ERC721, VRFConsumerBaseV2 {
+    VRFCoordinatorV2Interface COORDINATOR;
+    LinkTokenInterface LINKTOKEN;
+    uint64 subscriptionId;
+
+    using Counters for Counters.Counter;
+    Counters.Counter public _tokenIds;
+
+    bytes32 public keyHash;
+
     enum Breed {
         PUG,
         SHIBA_INU,
         ST_BERNARD
     }
-    // add other things
-    mapping(bytes32 => address) public requestIdToSender;
-    mapping(bytes32 => string) public requestIdToTokenURI;
     mapping(uint256 => Breed) public tokenIdToBreed;
-    mapping(bytes32 => uint256) public requestIdToTokenId;
-    event RequestedCollectible(bytes32 indexed requestId);
-    // New event from the video!
-    event ReturnedCollectible(bytes32 indexed requestId, uint256 randomNumber);
-
-    bytes32 internal keyHash;
-    uint256 internal fee;
+    mapping(uint256 => address) public requestIdToSender;
+    mapping(uint256 => string) private _tokenURIs;
+    event requestedCollectible(uint256 indexed requestId, address requester);
+    event breedAssigned(uint256 indexed tokenId, Breed breed);
 
     constructor(
-        address _VRFCoordinator,
-        address _LinkToken,
+        string memory Name,
+        string memory Symbol,
+        address _vrfCoordinator,
+        address _linkToken,
         bytes32 _keyhash
-    )
-        public
-        VRFConsumerBase(_VRFCoordinator, _LinkToken)
-        ERC721("Dogie", "DOG")
-    {
-        tokenCounter = 0;
+    ) VRFConsumerBaseV2(_vrfCoordinator) ERC721(Name, Symbol) {
+        COORDINATOR = VRFCoordinatorV2Interface(_vrfCoordinator);
+        subscriptionId = COORDINATOR.createSubscription();
+        COORDINATOR.addConsumer(subscriptionId, address(this));
+        LINKTOKEN = LinkTokenInterface(_linkToken);
+
         keyHash = _keyhash;
-        fee = 0.1 * 10**18;
     }
 
-    function createCollectible(string memory tokenURI)
-        public
-        returns (bytes32)
-    {
-        bytes32 requestId = requestRandomness(keyHash, fee);
+    function createCollectible() public {
+        uint256 requestId = requestRandomWords();
         requestIdToSender[requestId] = msg.sender;
-        requestIdToTokenURI[requestId] = tokenURI;
-        emit RequestedCollectible(requestId);
+        emit requestedCollectible(requestId, msg.sender);
     }
 
-    function fulfillRandomness(bytes32 requestId, uint256 randomNumber)
+    function requestRandomWords() public returns (uint256 requestId) {
+        // Will revert if subscription is not set and funded.
+        requestId = COORDINATOR.requestRandomWords(
+            keyHash,
+            subscriptionId,
+            3,
+            500000,
+            1
+        );
+        return requestId;
+    }
+
+    function fulfillRandomWords(uint256 requestId, uint256[] memory randomWords)
         internal
         override
     {
-        address dogOwner = requestIdToSender[requestId];
-        string memory tokenURI = requestIdToTokenURI[requestId];
-        uint256 newItemId = tokenCounter;
-        _safeMint(dogOwner, newItemId);
-        _setTokenURI(newItemId, tokenURI);
-        Breed breed = Breed(randomNumber % 3);
-        tokenIdToBreed[newItemId] = breed;
-        requestIdToTokenId[requestId] = newItemId;
-        tokenCounter = tokenCounter + 1;
-        emit ReturnedCollectible(requestId, randomNumber);
+        Breed breed = Breed(randomWords[0] % 3);
+        _tokenIds.increment();
+        uint256 newTokenId = _tokenIds.current();
+        tokenIdToBreed[newTokenId] = breed;
+        emit breedAssigned(newTokenId, breed);
+        address owner = requestIdToSender[requestId];
+        _safeMint(owner, newTokenId);
     }
 
     function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
+        // pug, shiba inu, st bernard
         require(
             _isApprovedOrOwner(_msgSender(), tokenId),
-            "ERC721: transfer caller is not owner nor approved"
+            "ERC721: caller is not owner or not approved"
         );
         _setTokenURI(tokenId, _tokenURI);
+    }
+
+    function _setTokenURI(uint256 tokenId, string memory _tokenURI)
+        internal
+        virtual
+    {
+        require(
+            _exists(tokenId),
+            "ERC721Metadata: URI set of nonexistent token"
+        );
+        _tokenURIs[tokenId] = _tokenURI;
+    }
+
+    function totalSupply() public view returns (uint256) {
+        return _tokenIds.current();
     }
 }

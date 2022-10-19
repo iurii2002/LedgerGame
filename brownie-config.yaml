@@ -18,6 +18,7 @@ networks:
   development:
     keyHash: '0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15'
     verify: False
+    gas_limit: max
   goerli:    
     subscriptionId: 1049
     boss_contract: '0x08739fF02Cd10aEbd7a21486A2C0c1E4BADC40d4'
