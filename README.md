@@ -21,3 +21,10 @@ fifebolt cast makes 2x damage
 
 
  Players should be able to brag their fights participations. Allow players to mint a non-fungible token when they claim the reward of a defeated boss. Inspired by the LOOT project, the NFT should be fully on-chain and display some information about the defeated boss. Don't be focus on the NFT itself, it doesn't need to be impressive or include any art
+
+
+
+
+ comments 
+
+ https://jeancvllr.medium.com/solidity-tutorial-all-about-comments-bc31c729975a

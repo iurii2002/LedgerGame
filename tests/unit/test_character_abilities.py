@@ -1,6 +1,6 @@
 import pytest
 import random
-from brownie import reverts, chain, WorldOfLedger
+from brownie import reverts
 
 from scripts.helpful_scripts import (
     get_account,
