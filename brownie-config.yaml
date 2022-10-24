@@ -18,17 +18,11 @@ networks:
   development:
     keyHash: '0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15'
     verify: False
-    gas_limit: max
   goerli:    
-    subscriptionId: 1049
     boss_contract: '0x08739fF02Cd10aEbd7a21486A2C0c1E4BADC40d4'
     vrf_v2_coordinator: '0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D'
     link_token: '0x326C977E6efc84E512bB9C30f76E30c160eD06FB'
     keyHash: '0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15'
-    link_premium: 0.25
-    callbackGasLimit: 100000
-    requestConfirmations: 3
-    numWords: 2
     verify: True
   mainnet:
     link_token: '0x514910771AF9Ca656af840dff83E8264EcF986CA'
@@ -52,3 +46,9 @@ networks:
     verify: False
 wallets:
   from_key: ${PRIVATE_KEY}
+
+reports:
+  exclude_contracts:
+    - LinkToken
+    - VRFCoordinatorV2Mock
+    - ERC721

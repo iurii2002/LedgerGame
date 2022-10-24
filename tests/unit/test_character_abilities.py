@@ -1,6 +1,6 @@
 import pytest
 import random
-from brownie import reverts, chain
+from brownie import reverts, chain, WorldOfLedger
 
 from scripts.helpful_scripts import (
     get_account,
@@ -157,3 +157,49 @@ def test_user_with_experience_can_heal_other_character(deploy_mocks_and_game):
     )
     calculated_new_hp = old_hp + heal_amount
     assert new_hp == calculated_new_hp
+
+
+def test_owner_may_set_heal_spell_level(deploy_mocks_and_game):
+    coordinator, boss_contract, world_of_ledger_contract = deploy_mocks_and_game
+    account = get_account()
+    new_level = 5
+    world_of_ledger_contract.setHealSpellLevel(new_level, {"from": account})
+    assert world_of_ledger_contract.healSpellLevel() == new_level
+
+
+def test_owner_may_set_firebolt_spell_level(deploy_mocks_and_game):
+    coordinator, boss_contract, world_of_ledger_contract = deploy_mocks_and_game
+    account = get_account()
+    new_level = 10
+    world_of_ledger_contract.setFireBoltSpellLevel(new_level, {"from": account})
+    assert world_of_ledger_contract.fireBoltSpellLevel() == new_level
+
+
+def test_owner_may_set_firebolt_cooldown_level(deploy_mocks_and_game):
+    coordinator, boss_contract, world_of_ledger_contract = deploy_mocks_and_game
+    account = get_account()
+    new_number_of_days = 3
+    seconds_in_day = 86400
+    world_of_ledger_contract.setFireBoltCooldownPeriod(
+        new_number_of_days, {"from": account}
+    )
+    assert (
+        world_of_ledger_contract.fireBoltCooldownPeriod()
+        == new_number_of_days * seconds_in_day
+    )
+
+
+def test_user_cant_change_spell_levels_and_cooldown_period(deploy_mocks_and_game):
+    coordinator, boss_contract, world_of_ledger_contract = deploy_mocks_and_game
+    account = get_account(index=2)
+    with reverts("Ownable: caller is not the owner"):
+        new_level = 5
+        world_of_ledger_contract.setHealSpellLevel(new_level, {"from": account})
+    with reverts("Ownable: caller is not the owner"):
+        new_level = 10
+        world_of_ledger_contract.setFireBoltSpellLevel(new_level, {"from": account})
+    with reverts("Ownable: caller is not the owner"):
+        new_number_of_days = 3
+        world_of_ledger_contract.setFireBoltCooldownPeriod(
+            new_number_of_days, {"from": account}
+        )

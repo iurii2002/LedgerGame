@@ -7,6 +7,7 @@ from scripts.helpful_scripts import (
     create_boss_nft,
 )
 from scripts.deploy_game import deploy_game
+from brownie import WorldOfLedger
 
 
 @pytest.fixture

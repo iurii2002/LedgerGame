@@ -3,8 +3,10 @@
 pragma solidity ^0.8.0;
 
 import "./WorldOfLedgerFactory.sol";
+import "./RewardNFT.sol";
+import "../interfaces/INFTInterface.sol";
 
-contract WorldOfLedger is WorldOfLedgerFactory {
+contract WorldOfLedger is WorldOfLedgerFactory, RewardNFT {
     uint256 _totalUsers;
     uint256 _totalDamage;
     mapping(address => uint256) public damageMade;
@@ -25,6 +27,7 @@ contract WorldOfLedger is WorldOfLedgerFactory {
             _bossContract,
             _linkToken
         )
+        RewardNFT()
     {
         _totalUsers = 0;
     }
@@ -136,11 +139,25 @@ contract WorldOfLedger is WorldOfLedgerFactory {
             usersRewards[users[i]] +=
                 currentBoss.reward *
                 (damageMade[users[i]] / _totalDamage);
+            addAllowanceToUser(
+                users[i],
+                damageMade[users[i]],
+                usersRewards[users[i]],
+                currentBoss.id
+            );
             delete damageMade[users[i]];
             delete users[i];
         }
         _totalUsers = 0;
         _totalDamage = 0;
+    }
+
+    function mintRewardNFT() public {
+        require(
+            userToNFTAllowed[msg.sender][0] != 0,
+            "User doen't have any NFT to mint"
+        );
+        _mintReward(msg.sender);
     }
 
     function claimRewards() public {

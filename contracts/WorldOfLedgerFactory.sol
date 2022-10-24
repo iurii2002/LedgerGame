@@ -6,27 +6,27 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/VRFCoordinatorV2Interface.sol";
 import "@chainlink/contracts/src/v0.8/VRFConsumerBaseV2.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/LinkTokenInterface.sol";
-import "../interfaces/IBossInterface.sol";
+import "../interfaces/INFTInterface.sol";
 
 contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
+    bytes32 keyHash;
     VRFCoordinatorV2Interface COORDINATOR;
     LinkTokenInterface LINKTOKEN;
+
+    Boss public currentBoss;
+    bool public bossAlive;
+    address public bossContractAddress;
     uint64 subscriptionId;
     uint32 callbackGasLimit = 500000;
     uint16 requestConfirmations = 3;
     uint32 numWords = 2;
-    uint8 healSpellLevel = 2;
-    uint8 fireBoltSpellLevel = 3;
-    uint32 fireBoltCooldownPeriod = 1 days;
+    uint8 public healSpellLevel;
+    uint8 public fireBoltSpellLevel;
+    uint64 public fireBoltCooldownPeriod;
 
     mapping(uint256 => address) public requestIdToAddress;
     mapping(uint256 => uint256[]) public requestIdToRandomWords;
     mapping(address => Character) public usersCharacters;
-
-    bytes32 keyHash;
-    Boss public currentBoss;
-    bool public bossAlive;
-    address public bossContractAddress;
 
     event SubscriptionCreated(uint64 indexed subId);
     event ConsumerAdded(uint64 indexed subId, address consumer);
@@ -67,6 +67,22 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
 
         bossContractAddress = _bossContract;
         bossAlive = false;
+
+        healSpellLevel = 2;
+        fireBoltSpellLevel = 3;
+        fireBoltCooldownPeriod = 1 days;
+    }
+
+    function setHealSpellLevel(uint8 newLevel) external onlyOwner {
+        healSpellLevel = newLevel;
+    }
+
+    function setFireBoltSpellLevel(uint8 newLevel) external onlyOwner {
+        fireBoltSpellLevel = newLevel;
+    }
+
+    function setFireBoltCooldownPeriod(uint8 timeInDays) external onlyOwner {
+        fireBoltCooldownPeriod = timeInDays * 1 days;
     }
 
     function createRandomCharacter() public {
@@ -100,7 +116,7 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
             bossAlive == false,
             "You can not pupulate new boss while there is another alive"
         );
-        IBossInterface bossContract = IBossInterface(bossContractAddress);
+        INFTInterface bossContract = INFTInterface(bossContractAddress);
         uint256 totalSupply = bossContract.totalSupply();
         uint256 id = (uint256(
             (
@@ -113,10 +129,9 @@ contract WorldOfLedgerFactory is Ownable, VRFConsumerBaseV2 {
                 )
             )
         ) % totalSupply) + 1;
+        string memory bossURI = bossContract.tokenURI(id);
         currentBoss = Boss(hp, damage, reward, id);
         bossAlive = true;
-        string memory bossURI = bossContract.tokenURI(id);
-        // string memory bossURI = "testing boss";
         emit BossCreated(id, bossURI);
     }
 
