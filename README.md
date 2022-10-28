@@ -28,3 +28,9 @@ It is possibally to cancel subscription and get your Link tokens back at any tim
 - Default cooldown period for firebolt spell - 1 day. May be changed by the contract owner;
 - Firebolt cast twice more damage then basic attack of the charater;
 - Heal spell heals the same amount of hp as the basic attack of the character;
+
+- Players can mint NFT after bosses defeat;
+
+## Example
+The example contract deployed on Goerli chain - [0xCa5514eF8426D4cd09BAB16Fb03dC6Ce6267a1Ae](https://goerli.etherscan.io/token/0xca5514ef8426d4cd09bab16fb03dc6ce6267a1ae#code))
+
