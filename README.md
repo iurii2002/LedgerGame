@@ -1,30 +1,31 @@
-You can use any ERC-721 contract while deploying, but it should have tokenURI and totalSupply function 
+# The World Of Ledger Game (made according to [LedgerHQ exercise] https://github.com/LedgerHQ/solidity-exercise)
 
 
-use for testing chainlink random number
-https://mirror.xyz/clemlaflemme.eth/v3O2NPRW75U5s5NG5CgsFlvNNw-TEFXB3LNjwaGqTI0
+## Environment
+Created using Brownie v1.19.2 and Python 3.10
 
+## Before deploy
+    There are two prerequisites we need before deploying the contract:
+        - **Boss contract address**. You can use any ERC-721 contract while deploying, however it should have *tokenURI* and *totalSupply* functions;
+        - **VRFV2Coordinator** address, **Key hash**, **Link token** address. As the contract uses chainlink random number generator for character generation, you need to provide these data to work correctly. Please refer to [Chainlink docs] https://docs.chain.link/docs/vrf/v2/subscription/examples/get-a-random-number/
 
-fifebolt cast makes 2x damage
+## After deploy
+    You have to create and fund chainlink subscription with some Link tokens. Players won't be able to generate new Characters without funded subscription. 
 
+    You have to: 
+        1. Give contract approval to use your Link tokens.
+        2. Use *fundSubscription* function of the contract.
+    
+    It is possibally to cancel subscription and get your Link tokens back at any time. However, you won't be able to fund it anymore and thus create new characters for the game.
 
+## Game features
+    - Users may generate characters with random HP and Damage (**NOTE** *createRandomCharacter* function will require some time for Chainlink nodes to generate random numers)
+    - Owner of the contract may create boss;
+    - Users may attack boss with their character and able to claim rewards of defeated bosses;
+    - Characters level is calculated according to formula: sqrt(xp) * 20 / 100;
+    - Everytime a player attack the boss, the boss will counterattack the player. Both will loose life points;
 
-
- after creating of the contract, you have to seperately approve the use of link by it 
- and then use fund subscripton funcition to fund VRFv2 subscription
-
-
-
- $ brownie test --disable-pytest-warnings
-
-
-
-
- Players should be able to brag their fights participations. Allow players to mint a non-fungible token when they claim the reward of a defeated boss. Inspired by the LOOT project, the NFT should be fully on-chain and display some information about the defeated boss. Don't be focus on the NFT itself, it doesn't need to be impressive or include any art
-
-
-
-
- comments 
-
- https://jeancvllr.medium.com/solidity-tutorial-all-about-comments-bc31c729975a
+    - Default requirement for heal spell - 2, firebolt spell - 3. May be changed by the contract owner;
+    - Default cooldown period for firebolt spell - 1 day. May be changed by the contract owner;
+    - Firebolt cast twice more damage then basic attack of the charater;
+    - Heal spell heals the same amount of hp as the basic attack of the character;
