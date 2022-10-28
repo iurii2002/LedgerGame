@@ -1,5 +1,4 @@
-# The World Of Ledger Game (made according to [LedgerHQ exercise] (https://github.com/LedgerHQ/solidity-exercise))
-
+# The World Of Ledger Game (made according to [LedgerHQ exercise](https://github.com/LedgerHQ/solidity-exercise))
 
 ## Environment
 Created using Brownie v1.19.2 and Python 3.10
