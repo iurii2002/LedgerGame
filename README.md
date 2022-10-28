@@ -7,7 +7,7 @@ Created using Brownie v1.19.2 and Python 3.10
 ## Before deploy
 There are two prerequisites we need before deploying the contract:
 * **Boss contract address**. You can use any ERC-721 contract while deploying, however it should have *tokenURI* and *totalSupply* functions;
-* **VRFV2Coordinator** address, **Key hash**, **Link token** address. As the contract uses chainlink random number generator for character generation, you need to provide these data to work correctly. Please refer to [Chainlink docs] (https://docs.chain.link/docs/vrf/v2/subscription/examples/get-a-random-number/)
+* **VRFV2Coordinator** address, **Key hash**, **Link token** address. As the contract uses chainlink random number generator for character generation, you need to provide these data to work correctly. Please refer to [Chainlink docs](https://docs.chain.link/docs/vrf/v2/subscription/examples/get-a-random-number/)
 
 ## After deploy
 You have to create and fund chainlink subscription with some Link tokens. Players won't be able to generate new Characters without funded subscription. 
